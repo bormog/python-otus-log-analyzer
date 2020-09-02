@@ -3,6 +3,7 @@ import ConfigParser
 import os
 import datetime
 import log_analyzer
+import logging
 
 FIXTURE_DIR = './tests/fixtures'
 
@@ -62,9 +63,11 @@ class TestGetLatestLogFile(unittest.TestCase):
     TEST_LOG_DIR = 'tests_log'
 
     def setUp(self):
+        logging.disable(logging.CRITICAL)
         os.mkdir(self.TEST_LOG_DIR)
 
     def tearDown(self):
+        logging.disable(logging.NOTSET)
         for filename in os.listdir(self.TEST_LOG_DIR):
             os.remove(os.path.join(self.TEST_LOG_DIR, filename))
         os.rmdir(self.TEST_LOG_DIR)
@@ -126,7 +129,13 @@ class TestGetLatestLogFile(unittest.TestCase):
 class TestCalculate(unittest.TestCase):
     SAMPLE_LOGFILE = 'nginx-access-ui.log-20200101'
 
-    def test_rows_has_keys(self):
+    def setUp(self):
+        logging.disable(logging.CRITICAL)
+
+    def tearDown(self):
+        logging.disable(logging.NOTSET)
+
+    def test_calculate_rows_has_keys(self):
         logfile = log_analyzer.LogFile(
             path=os.path.join(FIXTURE_DIR, self.SAMPLE_LOGFILE),
             date=datetime.date(2020, 01, 01),
@@ -146,16 +155,16 @@ class TestCalculate(unittest.TestCase):
         for key in keys:
             self.assertIn(key, row, 'logrow has key "%s"' % key)
 
-    def test_failed_if_errors_to_high(self):
+    def test_calculate_failed_if_errors_to_high(self):
         logfile = log_analyzer.LogFile(
             path=os.path.join(FIXTURE_DIR, self.SAMPLE_LOGFILE),
             date=datetime.date(2020, 01, 01),
             ext='.log-20200101'
         )
         with self.assertRaises(Exception) as err:
-            log_analyzer.calculate(logfile, -1)
+            log_analyzer.calculate(logfile, error_limit_perc_allowed=float('-inf'))
         self.assertEqual(
-            'Error percentage limit allowed = -1. Current = 0',
+            'Error percentage limit allowed = -inf. Current = 0.00',
             str(err.exception.message)
         )
 

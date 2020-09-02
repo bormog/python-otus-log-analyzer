@@ -146,7 +146,7 @@ def calculate(logfile, error_limit_perc_allowed):
 
     errors_count_percentage = float(error_count) * 100 / rows_count
     if errors_count_percentage > error_limit_perc_allowed:
-        msg = 'Error percentage limit allowed = %d. Current = %d' % \
+        msg = 'Error percentage limit allowed = %2f. Current = %.2f' % \
               (error_limit_perc_allowed, errors_count_percentage)
         logging.error(msg)
         raise Exception(msg)
@@ -223,7 +223,8 @@ if __name__ == '__main__':
     try:
         cfg = load_config(args.config, default_config=config)
     except Exception as err:
-        sys.exit(err.message)
+        msg = 'An some unexpected error occurred: %s' % err.message
+        sys.exit(msg)
 
     logging.basicConfig(
         format='[%(asctime)s] %(levelname).1s %(message)s',
@@ -231,4 +232,9 @@ if __name__ == '__main__':
         filename=cfg.get('LOGFILE'),
         level=logging.INFO
     )
-    main(cfg)
+    try:
+        main(cfg)
+    except Exception as err:
+        msg = 'An some unexpected error occurred: %s' % err.message
+        sys.exit(msg)
+
