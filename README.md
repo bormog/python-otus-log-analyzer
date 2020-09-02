@@ -25,5 +25,5 @@ python log_analyzer.py
 
 ### Тесты
 ```sh
-python -m unittest -v test_app
+python -m unittest -v test_log_analyzer
 ```
