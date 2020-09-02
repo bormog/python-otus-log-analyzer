@@ -319,4 +319,3 @@ if __name__ == '__main__':
     except Exception as err:
         msg = 'An some unexpected error occurred: %s' % err.message
         sys.exit(msg)
-
