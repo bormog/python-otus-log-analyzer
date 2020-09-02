@@ -169,5 +169,23 @@ class TestCalculate(unittest.TestCase):
         )
 
 
+class TestPercentage(unittest.TestCase):
+
+    def test_percentage_return_float(self):
+        a = b = 1
+        self.assertIsInstance(log_analyzer.percentage(a, b), float)
+
+    def test_percentage_is_correct(self):
+        cases = (
+            [[1, 100], 1],
+            [[100, 100], 100],
+            [[55.5, 100], 55.5],
+            [[55.5, 132], 42.04]
+        )
+        for (a, b), ret in cases:
+            self.assertAlmostEqual(log_analyzer.percentage(a, b), ret, 1)
+
+
+
 if __name__ == '__main__':
     unittest.main()

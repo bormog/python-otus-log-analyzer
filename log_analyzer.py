@@ -173,6 +173,20 @@ def median(arr):
         return arr[(size - 1) / 2]
 
 
+def percentage(part, total):
+    """
+    Caluclate percenage part of total
+
+    :param part: part of total
+    :type part: int|float
+    :param total: total
+    :type total: int|float
+    :return: percentage part of total
+    :rtype: float
+    """
+    return 100 * float(part) / total
+
+
 def calculate(logfile, error_limit_perc_allowed):
     """
     Group lines from nginx log by url and do calculate.
@@ -189,16 +203,18 @@ def calculate(logfile, error_limit_perc_allowed):
     gen_rows = logfile_generator(logfile, opener)
 
     rows_count = 0
-    error_count = 0
+    errors_count = 0
     total_duration = 0.0
 
     rows_by_url = dict()
 
     for url, duration in gen_rows:
-        if url is None or duration is None:
-            error_count += 1
-            continue
         rows_count += 1
+
+        if url is None or duration is None:
+            errors_count += 1
+            continue
+
         total_duration += float(duration)
 
         if url not in rows_by_url:
@@ -207,17 +223,17 @@ def calculate(logfile, error_limit_perc_allowed):
         rows_by_url[url]['count'] += 1
         rows_by_url[url]['durations'].append(duration)
 
-    errors_count_percentage = float(error_count) * 100 / rows_count
-    if errors_count_percentage > error_limit_perc_allowed:
+    errors_percentage = percentage(errors_count, rows_count)
+    if errors_percentage > error_limit_perc_allowed:
         msg = 'Error percentage limit allowed = %2f. Current = %.2f' % \
-              (error_limit_perc_allowed, errors_count_percentage)
+              (error_limit_perc_allowed, errors_percentage)
         logging.error(msg)
         raise Exception(msg)
 
     for url, data in rows_by_url.iteritems():
-        data['count_perc'] = 100 * float(data['count']) / rows_count
+        data['count_perc'] = percentage(data['count'], rows_count)
         data['time_sum'] = sum(data['durations'])
-        data['time_perc'] = 100 * data['time_sum'] / total_duration
+        data['time_perc'] = percentage(data['time_sum'], total_duration)
         data['time_avg'] = data['time_sum'] / len(data['durations'])
         data['time_max'] = max(data['durations'])
         data['time_med'] = median(data['durations'])
