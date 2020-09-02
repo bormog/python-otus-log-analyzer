@@ -26,6 +26,8 @@ config = {
     'LOGFILE': 'log_analyzer.log',
 }
 
+DEFAULT_INI_CONFIG_PATH = './configs/default.ini'
+
 LOGFILE_NAME_REGEXP = re.compile(r'nginx-access-ui\.log-(\d{8})((\.gz)?)$')
 LOGFILE_DATETIME_FORMAT = '%Y%m%d'
 
@@ -34,6 +36,16 @@ LogFileRow = namedtuple('LogFileRow', ['url', 'duration'])
 
 
 def load_config(path, default_config):
+    """
+    Load ini config by path, merge with default config and return dict
+
+    :param path: path to ini file
+    :type path: str
+    :param default_config: key-value dict
+    :type default_config: dict
+    :return key-value: dict
+    :rtype: dict
+    """
     if not os.path.isfile(path):
         raise Exception('Config not found by path: %s' % path)
     parser = ConfigParser.ConfigParser(allow_no_value=True)
@@ -55,6 +67,21 @@ def load_config(path, default_config):
 
 
 def get_latest_logfile(log_dir, logfile_regexp, logfile_datetime_format):
+    """
+    Find latest log file by regexp and datetime in filename. Return namedtuple LogFile
+
+    :param log_dir: path to dir with nginx logs
+    :type log_dir: str
+
+    :param logfile_regexp: compiled regexp for find logs
+    :type logfile_regexp: _sre.SRE_Pattern
+
+    :param logfile_datetime_format: datetime format of nginx logs
+    :type logfile_datetime_format: str
+
+    :return: LogFile
+    :rtype: namedtupe
+    """
     max_datetime = None
     latest_logfile = None
 
@@ -90,11 +117,28 @@ def get_latest_logfile(log_dir, logfile_regexp, logfile_datetime_format):
 
 
 def get_logfile_opener(logfile):
+    """
+    Check extension and return way to open file
+
+    :param logfile: namedtuple LogFile
+    :type logfile: LogFile
+    :return: gzip.open or io.open
+    :rtype: callable
+    """
     return gzip.open if logfile.ext == '.gz' else io.open
 
 
 def logfile_generator(logfile, opener):
-    # TODO: encoding='utf_8'
+    """
+    Open ngninx log with opener and yield LogFileRow
+
+    :param logfile: namedtuple LogFile
+    :type logfile: LogFile
+    :param opener: gzip.open or io.open
+    :return: callable
+    :rtype: generator
+    """
+    # TODO: encoding='utf_8, but python 2.7 does not support in gzip.open'
     with opener(logfile.path, 'r') as rows:
         for row in rows:
             parts = row.strip().split()
@@ -110,6 +154,14 @@ def logfile_generator(logfile, opener):
 
 
 def median(arr):
+    """
+    Calculate median
+
+    :param arr: list of numbers
+    :type arr: list
+    :return: median
+    :rtype: float
+    """
     arr = map(float, arr)
     size = len(arr)
     if size == 1:
@@ -122,6 +174,17 @@ def median(arr):
 
 
 def calculate(logfile, error_limit_perc_allowed):
+    """
+    Group lines from nginx log by url and do calculate.
+    Sort lines by time_sum from max to min
+
+    :param logfile: namedtuple LogFile
+    :type logfile: LogFile
+    :param error_limit_perc_allowed: allowed error percentage
+    :type error_limit_perc_allowed: float
+    :return: list of dicts
+    :rtype: list
+    """
     opener = get_logfile_opener(logfile)
     gen_rows = logfile_generator(logfile, opener)
 
@@ -170,11 +233,30 @@ def calculate(logfile, error_limit_perc_allowed):
 
 
 def get_report_path(logfile):
+    """
+    Generate filename and return path for html report
+
+    :param logfile: namedtuple LogFile
+    :type logfile: LogFile
+    :return: path for html report
+    :rtype: str
+    """
     name = 'report-%s.html' % logfile.date.strftime('%Y.%m.%d')
     return os.path.join(cfg.get('REPORT_DIR'), name)
 
 
 def render_report(src_path, template_path, rows):
+    """
+    Render rows in html file by template
+
+    :param src_path: html report path
+    :type src_path: str
+    :param template_path: html template for report
+    :type template_path: str
+    :param rows: list of rows for report
+    :type rows: list
+    :return: None
+    """
     with io.open(template_path, 'r', encoding='utf_8') as fr:
         template_content = fr.read()
 
@@ -217,7 +299,7 @@ def main(cfg):
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(description='Parses logs from a given directory and builds a report')
-    arg_parser.add_argument('--config', default='configs/default.ini', type=str)
+    arg_parser.add_argument('--config', default=DEFAULT_INI_CONFIG_PATH, type=str)
     args = arg_parser.parse_args()
 
     try:
