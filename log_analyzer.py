@@ -54,15 +54,14 @@ def load_config(path, default_config):
     except (ConfigParser.MissingSectionHeaderError, ConfigParser.ParsingError):
         raise
     try:
-        keys = parser.options('log_analyzer')
+        items = parser.items('log_analyzer')
     except ConfigParser.NoSectionError as err:
         err.message = '%s in config file %s' % (err.message, path)
         raise
-    tmp = {}
-    for key in keys:
-        tmp[key.upper()] = parser.get('log_analyzer', key)
+
+    items = {k.upper(): v for k, v in items}
     _cfg = default_config.copy()
-    _cfg.update(tmp)
+    _cfg.update(items)
     return _cfg
 
 

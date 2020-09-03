@@ -15,48 +15,43 @@ class TestLoadConfig(unittest.TestCase):
     SAMPLE_CONFIG = 'stage.ini'
 
     def test_load_config_by_invalid_path(self):
-        invalid_path = os.path.join(FIXTURE_DIR, self.NOT_EXSISTS_CONFIG)
+        ini_invalid_path = os.path.join(FIXTURE_DIR, self.NOT_EXSISTS_CONFIG)
         with self.assertRaises(Exception) as err:
-            log_analyzer.load_config(invalid_path, {})
+            log_analyzer.load_config(ini_invalid_path, {})
         self.assertEqual(
-            'Config not found by path: %s' % invalid_path,
+            'Config not found by path: %s' % ini_invalid_path,
             str(err.exception.message)
         )
 
     def test_load_config_no_section(self):
+        ini_no_section_path = os.path.join(FIXTURE_DIR, self.NO_SECTION_CONFIG)
         with self.assertRaises(ConfigParser.MissingSectionHeaderError):
-            log_analyzer.load_config(
-                os.path.join(FIXTURE_DIR, self.NO_SECTION_CONFIG),
-                {}
-            )
+            log_analyzer.load_config(ini_no_section_path, {})
 
     def test_load_config_no_app_section(self):
+        ini_no_app_section_path = os.path.join(FIXTURE_DIR, self.NO_APP_SECTION_CONFIG)
         with self.assertRaises(ConfigParser.NoSectionError):
-            log_analyzer.load_config(
-                os.path.join(FIXTURE_DIR, self.NO_APP_SECTION_CONFIG),
-                {}
-            )
+            log_analyzer.load_config(ini_no_app_section_path, {})
 
     def test_load_config_keys_is_upper(self):
-        cfg = log_analyzer.load_config(
-            os.path.join(FIXTURE_DIR, self.SAMPLE_CONFIG),
-            {}
-        )
+        ini_sample_path = os.path.join(FIXTURE_DIR, self.SAMPLE_CONFIG)
+        cfg = log_analyzer.load_config(ini_sample_path, {})
         self.assertIn('FOO', cfg)
+        self.assertIn('FOOBAR', cfg)
 
     def test_load_config_none_value_allowed(self):
-        cfg = log_analyzer.load_config(
-            os.path.join(FIXTURE_DIR, self.SAMPLE_CONFIG),
-            {}
-        )
+        ini_sample_path = os.path.join(FIXTURE_DIR, self.SAMPLE_CONFIG)
+        cfg = log_analyzer.load_config(ini_sample_path, {})
         self.assertEqual(cfg['FOOBAR'], None)
 
     def test_load_config_override_default(self):
+        ini_sample_path = os.path.join(FIXTURE_DIR, self.SAMPLE_CONFIG)
         cfg = log_analyzer.load_config(
-            os.path.join(FIXTURE_DIR, self.SAMPLE_CONFIG),
-            {'FOO': 'foo'}
+            ini_sample_path,
+            default_config={'FOO': 'foo', 'FOOBAR': 100500}
         )
         self.assertEqual(cfg.get('FOO'), 'bar')
+        self.assertEqual(cfg.get('FOOBAR'), None)
 
 
 class TestGetLatestLogFile(unittest.TestCase):
