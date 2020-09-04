@@ -136,7 +136,11 @@ class TestCalculate(unittest.TestCase):
             date=datetime.date(2020, 01, 01),
             ext='.log-20200101'
         )
-        rows = log_analyzer.calculate(logfile, 100)
+        grows = log_analyzer.logfile_generator(
+            logfile,
+            opener=log_analyzer.get_logfile_opener(logfile)
+        )
+        rows = log_analyzer.calculate(grows, 100)
         keys = (
             'count',
             'count_perc',
@@ -146,7 +150,7 @@ class TestCalculate(unittest.TestCase):
             'time_max',
             'time_med'
         )
-        row = rows.pop()
+        row = rows[0]
         for key in keys:
             self.assertIn(key, row, 'logrow has key "%s"' % key)
 
@@ -156,12 +160,22 @@ class TestCalculate(unittest.TestCase):
             date=datetime.date(2020, 01, 01),
             ext='.log-20200101'
         )
+        grows = log_analyzer.logfile_generator(
+            logfile,
+            opener=log_analyzer.get_logfile_opener(logfile)
+        )
         with self.assertRaises(Exception) as err:
-            log_analyzer.calculate(logfile, error_limit_perc_allowed=float('-inf'))
+            log_analyzer.calculate(grows, error_limit_perc_allowed=float('-inf'))
         self.assertEqual(
             'Error percentage limit allowed = -inf. Current = 0.00',
             str(err.exception.message)
         )
+
+    def test_calculate_is_sorted(self):
+        rows = [log_analyzer.LogFileRow(url=i, duration=i) for i in xrange(1, 6)]
+        rows_by_url = log_analyzer.calculate(rows, 100)
+        self.assertEqual(rows_by_url[0]['url'], 5)
+        self.assertEqual(rows_by_url[-1]['url'], 1)
 
 
 class TestPercentage(unittest.TestCase):
@@ -179,7 +193,6 @@ class TestPercentage(unittest.TestCase):
         )
         for (a, b), ret in cases:
             self.assertAlmostEqual(log_analyzer.percentage(a, b), ret, 1)
-
 
 
 if __name__ == '__main__':

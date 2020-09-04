@@ -186,28 +186,25 @@ def percentage(part, total):
     return 100 * float(part) / total
 
 
-def calculate(logfile, error_limit_perc_allowed):
+def calculate(rows, error_limit_perc_allowed):
     """
     Group lines from nginx log by url and do calculate.
     Sort lines by time_sum from max to min
 
-    :param logfile: namedtuple LogFile
-    :type logfile: LogFile
+    :param rows: iterable of LogFileRow
+    :type rows: iterable
     :param error_limit_perc_allowed: allowed error percentage
     :type error_limit_perc_allowed: float
     :return: list of dicts
     :rtype: list
     """
-    opener = get_logfile_opener(logfile)
-    gen_rows = logfile_generator(logfile, opener)
 
     rows_count = 0
     errors_count = 0
     total_duration = 0.0
-
     rows_by_url = dict()
 
-    for url, duration in gen_rows:
+    for url, duration in rows:
         rows_count += 1
 
         if url is None or duration is None:
@@ -238,13 +235,13 @@ def calculate(logfile, error_limit_perc_allowed):
         data['time_med'] = median(data['durations'])
         del data['durations']
 
-    rows = sorted(
+    _rows = sorted(
         rows_by_url.values(),
         key=lambda x: x['time_sum'],
         reverse=True
     )
 
-    return rows
+    return _rows
 
 
 def get_report_path(logfile):
@@ -300,8 +297,11 @@ def main(cfg):
             logging.info('Report %s already exists' % report_path)
             return
 
+    opener = get_logfile_opener(logfile)
+    generator = logfile_generator(logfile, opener)
+
     logging.info('Start calculating')
-    rows = calculate(logfile, cfg['ERROR_LIMIT_PERCENTAGE'])
+    rows = calculate(generator, cfg['ERROR_LIMIT_PERCENTAGE'])
     logging.info('%d rows calculated' % len(rows))
 
     report_size = cfg['REPORT_SIZE']
