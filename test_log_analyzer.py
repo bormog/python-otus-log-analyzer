@@ -195,5 +195,18 @@ class TestPercentage(unittest.TestCase):
             self.assertAlmostEqual(log_analyzer.percentage(a, b), ret, 1)
 
 
+class TestMedian(unittest.TestCase):
+
+    def test_median_is_correct(self):
+        cases = (
+            [[1],  1],
+            [[1, 1], 1],
+            [[3, 2, 1], 2],
+            [[4, 3, 2, 1], 2.5]
+        )
+        for arr, ret in cases:
+            self.assertAlmostEqual(log_analyzer.median(arr), ret)
+
+
 if __name__ == '__main__':
     unittest.main()
