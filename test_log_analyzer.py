@@ -1,5 +1,5 @@
 import unittest
-import ConfigParser
+import configparser
 import os
 import datetime
 import log_analyzer
@@ -20,17 +20,17 @@ class TestLoadConfig(unittest.TestCase):
             log_analyzer.load_config(ini_invalid_path, {})
         self.assertEqual(
             'Config not found by path: %s' % ini_invalid_path,
-            str(err.exception.message)
+            str(err.exception)
         )
 
     def test_load_config_no_section(self):
         ini_no_section_path = os.path.join(FIXTURE_DIR, self.NO_SECTION_CONFIG)
-        with self.assertRaises(ConfigParser.MissingSectionHeaderError):
+        with self.assertRaises(configparser.MissingSectionHeaderError):
             log_analyzer.load_config(ini_no_section_path, {})
 
     def test_load_config_no_app_section(self):
         ini_no_app_section_path = os.path.join(FIXTURE_DIR, self.NO_APP_SECTION_CONFIG)
-        with self.assertRaises(ConfigParser.NoSectionError):
+        with self.assertRaises(configparser.NoSectionError):
             log_analyzer.load_config(ini_no_app_section_path, {})
 
     def test_load_config_keys_is_upper(self):
@@ -42,7 +42,7 @@ class TestLoadConfig(unittest.TestCase):
     def test_load_config_none_value_allowed(self):
         ini_sample_path = os.path.join(FIXTURE_DIR, self.SAMPLE_CONFIG)
         cfg = log_analyzer.load_config(ini_sample_path, {})
-        self.assertEqual(cfg['FOOBAR'], None)
+        self.assertEqual(cfg['FOOBAR'], '')
 
     def test_load_config_override_default(self):
         ini_sample_path = os.path.join(FIXTURE_DIR, self.SAMPLE_CONFIG)
@@ -51,7 +51,7 @@ class TestLoadConfig(unittest.TestCase):
             default_config={'FOO': 'foo', 'FOOBAR': 100500}
         )
         self.assertEqual(cfg.get('FOO'), 'bar')
-        self.assertEqual(cfg.get('FOOBAR'), None)
+        self.assertEqual(cfg.get('FOOBAR'), '')
 
 
 class TestGetLatestLogFile(unittest.TestCase):
@@ -133,7 +133,7 @@ class TestCalculate(unittest.TestCase):
     def test_calculate_rows_has_keys(self):
         logfile = log_analyzer.LogFile(
             path=os.path.join(FIXTURE_DIR, self.SAMPLE_LOGFILE),
-            date=datetime.date(2020, 01, 01),
+            date=datetime.date(2020, 1, 1),
             ext='.log-20200101'
         )
         grows = log_analyzer.logfile_generator(
@@ -157,7 +157,7 @@ class TestCalculate(unittest.TestCase):
     def test_calculate_failed_if_errors_to_high(self):
         logfile = log_analyzer.LogFile(
             path=os.path.join(FIXTURE_DIR, self.SAMPLE_LOGFILE),
-            date=datetime.date(2020, 01, 01),
+            date=datetime.date(2020, 1, 1),
             ext='.log-20200101'
         )
         grows = log_analyzer.logfile_generator(
@@ -168,11 +168,11 @@ class TestCalculate(unittest.TestCase):
             log_analyzer.calculate(grows, error_limit_perc_allowed=float('-inf'))
         self.assertEqual(
             'Error percentage limit allowed = -inf. Current = 0.00',
-            str(err.exception.message)
+            str(err.exception)
         )
 
     def test_calculate_is_sorted(self):
-        rows = [log_analyzer.LogFileRow(url=i, duration=i) for i in xrange(1, 6)]
+        rows = [log_analyzer.LogFileRow(url=i, duration=i) for i in range(1, 6)]
         rows_by_url = log_analyzer.calculate(rows, 100)
         self.assertEqual(rows_by_url[0]['url'], 5)
         self.assertEqual(rows_by_url[-1]['url'], 1)

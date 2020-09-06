@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import ConfigParser
+import configparser
 import argparse
 import datetime
 import gzip
@@ -48,14 +48,14 @@ def load_config(path, default_config):
     """
     if not os.path.isfile(path):
         raise Exception('Config not found by path: %s' % path)
-    parser = ConfigParser.ConfigParser(allow_no_value=True)
+    parser = configparser.ConfigParser(allow_no_value=True)
     try:
         parser.read(path)
-    except (ConfigParser.MissingSectionHeaderError, ConfigParser.ParsingError):
+    except (configparser.MissingSectionHeaderError, configparser.ParsingError):
         raise
     try:
         items = parser.items('log_analyzer')
-    except ConfigParser.NoSectionError as err:
+    except configparser.NoSectionError as err:
         err.message = '%s in config file %s' % (err.message, path)
         raise
 
@@ -137,8 +137,7 @@ def logfile_generator(logfile, opener):
     :return: callable
     :rtype: generator
     """
-    # TODO: encoding='utf_8, but python 2.7 does not support in gzip.open'
-    with opener(logfile.path, 'r') as rows:
+    with opener(logfile.path, 'r', encoding='utf_8') as rows:
         for row in rows:
             parts = row.strip().split()
             try:
@@ -161,15 +160,15 @@ def median(arr):
     :return: median
     :rtype: float
     """
-    arr = map(float, arr)
+    arr = [float(i) for i in arr]
     size = len(arr)
     if size == 1:
         return arr[0]
     arr.sort()
     if size % 2 == 0:
-        return (float(arr[size / 2 - 1]) + float(arr[size / 2])) / 2
+        return (float(arr[size // 2 - 1]) + float(arr[size // 2])) / 2
     else:
-        return arr[(size - 1) / 2]
+        return arr[(size - 1) // 2]
 
 
 def percentage(part, total):
@@ -220,13 +219,13 @@ def calculate(rows, error_limit_perc_allowed):
         rows_by_url[url]['durations'].append(duration)
 
     errors_percentage = percentage(errors_count, rows_count)
-    if errors_percentage > error_limit_perc_allowed:
+    if errors_percentage > float(error_limit_perc_allowed):
         msg = 'Error percentage limit allowed = %2f. Current = %.2f' % \
               (error_limit_perc_allowed, errors_percentage)
         logging.error(msg)
         raise Exception(msg)
 
-    for url, data in rows_by_url.iteritems():
+    for url, data in rows_by_url.items():
         data['count_perc'] = percentage(data['count'], rows_count)
         data['time_sum'] = sum(data['durations'])
         data['time_perc'] = percentage(data['time_sum'], total_duration)
@@ -304,7 +303,7 @@ def main(cfg):
     rows = calculate(generator, cfg['ERROR_LIMIT_PERCENTAGE'])
     logging.info('%d rows calculated' % len(rows))
 
-    report_size = cfg['REPORT_SIZE']
+    report_size = int(cfg['REPORT_SIZE'])
     if report_size < len(rows):
         rows = rows[0:report_size]
 
@@ -320,7 +319,7 @@ if __name__ == '__main__':
     try:
         cfg = load_config(args.config, default_config=config)
     except Exception as err:
-        msg = 'An some unexpected error occurred: %s' % err.message
+        msg = 'An some unexpected error occurred: %s' % repr(err)
         sys.exit(msg)
 
     logging.basicConfig(
@@ -332,5 +331,6 @@ if __name__ == '__main__':
     try:
         main(cfg)
     except Exception as err:
-        msg = 'An some unexpected error occurred: %s' % err.message
+        msg = 'An some unexpected error occurred: %s' % repr(err)
+        logging.exception(err)
         sys.exit(msg)
