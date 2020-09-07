@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import sys
+import shutil
 from collections import namedtuple
 from string import Template
 
@@ -60,9 +61,9 @@ def load_config(path, default_config):
         raise
 
     items = {k.upper(): v for k, v in items}
-    _cfg = default_config.copy()
-    _cfg.update(items)
-    return _cfg
+    config_copy = default_config.copy()
+    config_copy.update(items)
+    return config_copy
 
 
 def get_latest_logfile(log_dir, logfile_regexp, logfile_datetime_format):
@@ -182,7 +183,11 @@ def percentage(part, total):
     :return: percentage part of total
     :rtype: float
     """
-    return 100 * float(part) / total
+    try:
+        result = 100 * float(part) / total
+    except ZeroDivisionError:
+        result = 0.0
+    return result
 
 
 def calculate(rows, error_limit_perc_allowed):
@@ -234,13 +239,13 @@ def calculate(rows, error_limit_perc_allowed):
         data['time_med'] = median(data['durations'])
         del data['durations']
 
-    _rows = sorted(
+    rows_sorted = sorted(
         rows_by_url.values(),
         key=lambda x: x['time_sum'],
         reverse=True
     )
 
-    return _rows
+    return rows_sorted
 
 
 def get_report_path(logfile):
@@ -256,7 +261,7 @@ def get_report_path(logfile):
     return os.path.join(cfg.get('REPORT_DIR'), name)
 
 
-def render_report(src_path, template_path, rows):
+def render_report(dst_path, template_path, rows):
     """
     Render rows in html file by template
 
@@ -273,8 +278,14 @@ def render_report(src_path, template_path, rows):
 
     output = Template(template_content).safe_substitute(table_json=json.dumps(rows))
 
-    with io.open(src_path, 'w', encoding='utf_8') as fw:
+    tmp_dst_path = '%s.tmp' % dst_path
+    with io.open(tmp_dst_path, 'w', encoding='utf_8') as fw:
         fw.write(output)
+
+    if not os.path.isfile(tmp_dst_path):
+        raise Exception('Can not write in report file "%s"' % tmp_dst_path)
+
+    shutil.move(tmp_dst_path, dst_path)
 
 
 def main(cfg):

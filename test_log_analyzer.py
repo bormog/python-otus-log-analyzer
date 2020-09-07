@@ -4,6 +4,7 @@ import os
 import datetime
 import log_analyzer
 import logging
+import json
 
 FIXTURE_DIR = './tests/fixtures'
 
@@ -184,6 +185,9 @@ class TestPercentage(unittest.TestCase):
         a = b = 1
         self.assertIsInstance(log_analyzer.percentage(a, b), float)
 
+    def test_percentage_zero_division(self):
+        self.assertEqual(log_analyzer.percentage(42, 0), 0.0)
+
     def test_percentage_is_correct(self):
         cases = (
             [[1, 100], 1],
@@ -206,6 +210,45 @@ class TestMedian(unittest.TestCase):
         )
         for arr, ret in cases:
             self.assertAlmostEqual(log_analyzer.median(arr), ret)
+
+
+class TestRenderReport(unittest.TestCase):
+    REPORT_TEMPLATE = 'template.html'
+    TEST_RENDER_DIR = 'tests_render'
+
+    def setUp(self):
+        os.mkdir(self.TEST_RENDER_DIR)
+
+    def tearDown(self):
+        for filename in os.listdir(self.TEST_RENDER_DIR):
+            os.remove(os.path.join(self.TEST_RENDER_DIR, filename))
+        os.rmdir(self.TEST_RENDER_DIR)
+
+    def test_render_report_is_render(self):
+        template_path = os.path.join(FIXTURE_DIR, self.REPORT_TEMPLATE)
+        output_path = os.path.join(self.TEST_RENDER_DIR, 'report.html')
+        rows = ['foobar']
+        log_analyzer.render_report(
+            output_path,
+            template_path,
+            rows
+        )
+        self.assertEqual(os.path.exists(output_path), True)
+
+    def test_render_report_is_correct(self):
+        template_path = os.path.join(FIXTURE_DIR, self.REPORT_TEMPLATE)
+        output_path = os.path.join(self.TEST_RENDER_DIR, 'report.html')
+        rows = dict(foo='bar')
+        log_analyzer.render_report(
+            output_path,
+            template_path,
+            rows
+        )
+        with open(output_path, 'r', encoding='utf_8') as fw:
+            self.assertEqual(
+                rows,
+                json.loads(fw.read())
+            )
 
 
 if __name__ == '__main__':
